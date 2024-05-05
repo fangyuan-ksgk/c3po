@@ -8,6 +8,8 @@ from torch import nn
 from trl import DPOTrainer
 from transformers import PreTrainedModel
 
+# Great Starter Code to Cut into customized loss function for the DPO Trainer (Which is a subclass of the TRL Trainer)
+# This ones aims to align two logits prediction | one from student model and the other from teacher model
 
 def masked_dl_div(pred_logits: torch.Tensor, teacher_logits: torch.Tensor, attention_mask: torch.Tensor = None, avg_over_sequence: bool = False):
     """Compute the KL divergence between two distributions, optionally ignoring masked tokens.
@@ -21,13 +23,17 @@ def masked_dl_div(pred_logits: torch.Tensor, teacher_logits: torch.Tensor, atten
     pred_logprobs = pred_logits.log_softmax(-1) # (B, T, D)
     teacher_logprobs = teacher_logits.log_softmax(-1) # (B, T, D)
     per_token_kls = (teacher_logprobs.exp() * (teacher_logprobs - pred_logprobs)).sum(-1) # (B, T)
-    masked_kls = per_token_kls * (attention_mask if attention_mask is not None else 1) # (B, T)
+    masked_kls = per_token_kls * (attention_mask if attention_mask is not None else 1) # (B, T) | In this sense, the mask needs not be binary -- Weighted Loss is pretty visible from here already
     if avg_over_sequence:
+        # Weighted Average of KL Divergence loss over the sequence (the division here is just to normalize the weights --> attentoin_mask)
         per_sequence_kls = masked_kls.sum(-1) / (attention_mask.sum(-1) if attention_mask is not None else masked_kls.shape[-1]) # (B,)
     else:
         per_sequence_kls = masked_kls.sum(-1) # (B,)
     return per_sequence_kls.mean(0) # scalar
 
+# This one computes a CELoss given GT labels (one-hot logits vector) | I imagine it's always better to have teacher logits, and not just the one-hot labels
+# Somehow we would like to 'witness' something taking place in real-time, and not just get shuffled the final result
+# For some reason, here the attention_mask is LongTensor (integer), while previous one allows for float values
 
 def masked_lm_loss(
     logits: torch.FloatTensor,
@@ -37,7 +43,7 @@ def masked_lm_loss(
 
     # Ensure we set ignore indices where there's no attention
     labels[attention_mask == 0] = -100
-    # Shift so that tokens < n predict n
+    # Shift so that tokens < n predict n | i-th logit prediction is for i-th token | shift to match pred with GT
     shift_logits = logits[..., :-1, :].contiguous() # (B, T-1, D)
     shift_labels = labels[..., 1:].contiguous() # (B, T-1)
 
@@ -67,12 +73,13 @@ class LocallyConstrainedDPOTrainer(DPOTrainer):
         self.custom_sft_loss = custom_sft_loss
         super().__init__(*args, **kwargs)
 
-    
+    # So this is where we compute the custom loss value ? No, compute_loss is the one that overwrites normal loss in Trainer, and customize the loss value
+    # This one computes a weighted average between CELoss (with GT label) and KL Divergence Loss (with ref model)
     def compute_knowledge_distillation_loss(
             self,
             model: Union[PreTrainedModel, nn.Module],
             batch: Dict[str, Union[List, torch.LongTensor]],
-            train_eval: Literal["train", "eval"] = "train",
+            train_eval: Literal["train", "eval"] = "train", # Literal is likely similar to Enum
             target: Literal["soft", "hard"] = "soft"
     ) -> Tuple[torch.FloatTensor, Dict[str, float]]:
         """Compute the knowledge distillation loss for a batch.
@@ -87,7 +94,7 @@ class LocallyConstrainedDPOTrainer(DPOTrainer):
             "labels": batch[f"{target}_negative_labels"]
         }
     
-        student_output = model(**batch)
+        student_output = model(**batch) # Nice, this also clears up my confusion on how to use the model object | input_ids / attention_mask / labels
 
         with torch.no_grad():
             if self.ref_model is None:
@@ -123,7 +130,7 @@ class LocallyConstrainedDPOTrainer(DPOTrainer):
 
     def get_completion_only_labels(self, input_ids: list[list[int]]) -> list[list[int]]:
         labels = torch.tensor(input_ids).clone()
-        response_token_ids_start_idx = None
+        response_token_ids_start_idx = None # Issue with this is that fisrt response could ends up getting tokenized into the last query token
 
         for idx in np.where(labels == self.response_token_ids[0])[0]:
             # `response_token_ids` is `'### Response:\n'`, here we are just making sure that the token IDs match
@@ -148,7 +155,7 @@ class LocallyConstrainedDPOTrainer(DPOTrainer):
             labels[:response_token_ids_end_idx] = self.ignore_index
         return labels.tolist()
 
-
+    # This is precisely where we over-write the loss computation function towards ANY customary loss functional
     def compute_loss(
         self,
         model: Union[PreTrainedModel, nn.Module],
