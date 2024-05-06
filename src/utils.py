@@ -25,7 +25,7 @@ DTYPES = {
     "f32": torch.float32
 }
 
-
+# How to initialize / load it? 
 @dataclass
 class ModelArguments:
     dtype: Optional[Literal["bf16", "f16", "f32"]] = "bf16"
@@ -35,6 +35,9 @@ class ModelArguments:
     platform: Optional[Literal["openai", "together", "huggingface"]] = "huggingface"
 
 
+# Pipeline requires 5 models | category, prompt, completion, train, qualitative_evaluation models
+# Which is why the PipelineModelsArgument contains 5 copies of ModelArguments
+# Initialization is in the 'ger_args' functional
 @dataclass
 class PipelineModelsArguments:
    category_model: Optional[ModelArguments] = field(default_factory=ModelArguments)
@@ -133,6 +136,7 @@ def get_args(arg_dict: dict[str, Any]) -> tuple[PipelineModelsArguments, SampleA
     eval_arg_dict = arg_dict["eval_args"]
 
     # TODO: figure out a way to not parse separately and preserve types
+    # HfArgumentParse parse on a python dictionary object, this is quite convenient wrapper
     model_arg_parser = HfArgumentParser(PipelineModelsArguments)
     model_args: PipelineModelsArguments = model_arg_parser.parse_dict(modal_arg_dict)[0]
     sample_arg_parser = HfArgumentParser(SampleArguments)
@@ -145,7 +149,7 @@ def get_args(arg_dict: dict[str, Any]) -> tuple[PipelineModelsArguments, SampleA
 
 
 def find_all_linear_names(model, exclude: list[str]):
-    """Finds all linear layer names in a model."""
+    """Finds all linear layer names in a model. | Exluding keyword in names presented in the list"""
     cls = torch.nn.Linear
     lora_module_names = set()
     for name, module in model.named_modules():

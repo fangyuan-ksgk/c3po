@@ -18,7 +18,9 @@ from src.dataset.format import to_dpo, to_sft, to_lcdpo, to_sft_weighted
 from src.feedback import manual_feedback as all_feedback
 from src.utils import get_args, find_all_linear_names, dump_arg_dicts, PeftSavingCallback, get_train_file_name, print_num_trainable_params, TrainingArguments, find_file_with_prefix
 
+# Overall 3 functions in total | filer relevant feedback -- get prompts (which is a tuple of dataset) | train 
 
+# HuggingFace Dataset object --> prompts | Feedback object needs to be cleared up
 def filter_relevant_feedback(feedback: Feedback, prompts: Dataset | None) -> Dataset | None:
     """Filter out prompts where the revision is not better than the baseline"""
     if prompts is None:
@@ -33,7 +35,7 @@ def filter_relevant_feedback(feedback: Feedback, prompts: Dataset | None) -> Dat
     return prompts.filter(lambda x: feedback.comparison(
         metric(x["baseline_response"]),
         metric(x["revised_response"])
-    ))
+    )) # This is basically doing individual score, and then compare
 
 
 def get_prompts(feedback: Feedback, training_args: TrainingArguments) -> Tuple[Dataset, Dataset, Dataset]:
