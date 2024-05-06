@@ -94,8 +94,9 @@ api_image = (
         TOKENIZERS_PARALLELISM="True"))
 )
 
+# This Big is hurting me dearly
 stub = Stub(
-    "metarlaif", secrets=[Secret.from_name("my-huggingface-secret")]
+    "metarlaif", secrets=[Secret.from_name("ksgk-secret")]
 )
 stub.gpu_image = gpu_image
 stub.non_gpu_image = non_gpu_image

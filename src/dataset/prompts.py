@@ -50,7 +50,7 @@ REVISED_CATEGORIES:
 
 TOPIC: {topic}
 
-THOUGHTS: """
+THOUGHTS: """ # here he tries to get an auto-completion in play
 
 SAMPLE_PROMPT_CATEGORIES_CONFIG = {
     "temperature": 0.7,
@@ -59,7 +59,8 @@ SAMPLE_PROMPT_CATEGORIES_CONFIG = {
     "repetition_penalty": 1,
     "do_sample": True
 }
-
+# Essentially In-Domain prompts / like questions that are related to the topic
+# Note that prompt could be a question, or a request for information, or a command
 SAMPLE_PROMPTS = """You are a helpful assistant that always closely follows instructions. You are provided with a topic, and category. Your job is to come up with {count} actionable prompts that fulfill the following criteria:
 
 - All prompts must fall within the category provided
@@ -109,6 +110,9 @@ PROMPTS:
 
 SAMPLE_PROMPTS_CONFIG = SAMPLE_PROMPT_CATEGORIES_CONFIG
 
+# To be honest, in here the definitoin of topic, as well as category seems to be intertwinned and not really clear which should be topic, and which should be category
+# boeing & aribus is topic, but plain crashes is category
+# Close-domain prompts / like questions that are not related to the topic, but are related somehow
 SAMPLE_NEGATIVE_PROMPTS = """You are a helpful assistant that always closely follows instructions. You are provided with a topic to avoid and a category. Your job is to come up with {count} example prompts that fulfill the following criteria:
 
 - All prompts must fall within the category provided
@@ -195,6 +199,7 @@ EXPLANATION: """
 
 GET_COMPLETION_REVISED_CONFIG = SAMPLE_PROMPT_CATEGORIES_CONFIG
 
+# This could directly be applicable for the instruction-following evaluation bit
 COMPARE_COMPLETIONS = """You are a helpful assistant. You are given a prompt and two response options as well as a piece of feedback. Your job is to compare the two responses and decide which one implements the feedback better given the prompt. Your response should be on a scale from 1 to 5 where each score has the following meaning:
 
 1: RESPONSE_1 implements the feedback much better than RESPONSE_2

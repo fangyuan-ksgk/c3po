@@ -3,6 +3,7 @@ import json
 import copy
 from typing import Any
 from modal import gpu, Mount
+import modal
 
 from src.train import train
 from src.sample import sample
@@ -21,6 +22,7 @@ from src.feedback import manual_feedback as all_feedback
     image=stub.non_gpu_image,
     timeout=3600 * 12,
     concurrency_limit=512,
+    secrets=[modal.Secret.from_name("ksgk-secret")],
     mounts=[
         Mount.from_local_dir("configs", remote_path="/root/configs")
     ]
@@ -45,9 +47,10 @@ def _sample(arg_dict: dict[str, Any], run_id: str, data_dir: str, feedback: list
     gpu=gpu.A100(count=1),
     timeout=3600 * 12,
     concurrency_limit=512,
+    secrets=[modal.Secret.from_name("ksgk-secret")],
     mounts=[
         Mount.from_local_dir("configs", remote_path="/root/configs")
-    ]
+    ],
 )
 def _train(arg_dict: dict[str, Any], run_id: str, data_dir: str, feedback: Feedback, second_feedback: Feedback = None):
     train(arg_dict, run_id, data_dir, feedback, second_feedback)
@@ -68,6 +71,7 @@ def _train(arg_dict: dict[str, Any], run_id: str, data_dir: str, feedback: Feedb
     volumes=VOLUME_CONFIG,
     cpu=4.0,
     image=stub.gpu_image,
+    secrets=[modal.Secret.from_name("ksgk-secret")],
     gpu=gpu.A100(count=1),
     timeout=3600 * 12,
     concurrency_limit=512,
@@ -88,6 +92,7 @@ def _eval(arg_dict: dict[str, Any], run_id: str, data_dir: str, feedback: Feedba
         del second_feedback.general_prompts
     stub.pretrained_volume.commit()
     stub.results_volume.commit()
+
 
 
 @stub.local_entrypoint()  # Runs locally to kick off remote training job.
