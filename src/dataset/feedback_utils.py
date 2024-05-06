@@ -39,6 +39,8 @@ class Comparison(Enum):
         return self.value(*args, **kwargs)
 
 
+# So the Enum object essentially limit the metric to a certain set of options
+# I do not seem to find qualitative metric here
 class Metric(Enum):
     length: Callable = lambda x, _: len(x)
     contains_any_string: Callable = lambda x, y: any([s.lower() in x.lower() for s in y])
@@ -56,7 +58,7 @@ class Metric(Enum):
     def __call__(self, *args, **kwargs):
         return self.value(*args, **kwargs)
 
-
+# For each Feedback, we have a bunch of prompts / positive prompts / negative prompts (?)
 class Feedback(BaseModel):
     content: str
     domain: str
@@ -105,6 +107,7 @@ class Feedback(BaseModel):
             return False
         return True
     
+    # Ok now my question is: what are these positive / negative prompts mean?
     def general_prompts_available(self, prompt_dir: str) -> Optional[str]:
         """If any of the subdirectories of prompt_dir have a valid json file named "general_prompts.json" with keys "train" and "test",
         return the path to that file. Otherwise, return None.
@@ -133,9 +136,9 @@ class Feedback(BaseModel):
     def _load_dataset_dict(path: str) -> DatasetDict:
         with open(path, "r") as f:
             data = json.load(f)
-        dataset_dict = DatasetDict()
+        dataset_dict = DatasetDict() # This is a built-in huggingface dataset object 
         for split in data.keys():
-            dataset_dict[split] = Dataset.from_dict(data[split])
+            dataset_dict[split] = Dataset.from_dict(data[split]) # Why does the prompts.json itself contain different keys?
         return dataset_dict
 
 

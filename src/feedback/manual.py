@@ -1,13 +1,14 @@
 from src.dataset.feedback_utils import Feedback, Scope, Type, Metric, Comparison, EOS_EMOJI_REGEX, HEART_KISS_EMOJI_REGEX
 
+# Scope, Type, Metric (I imagine they are just used to calculate the loss value here ? )
 
 manual_feedback = [
     Feedback(
         content="Always use some heart or kiss emoji when texting my girlfriend Maddie",
         domain="writing text messages to my girlfriend Maddie",
         effect="use some heart or kiss emoji",
-        scope=Scope.regional,
-        type=Type.quantitative,
+        scope=Scope.regional, # global regional local 3 types
+        type=Type.quantitative, # quantitative / qualitative two types | use emoji this is the starting task I have, too
         metric=Metric.regex_search,
         metric_value=HEART_KISS_EMOJI_REGEX,
         comparison=Comparison.greater_eq_than
