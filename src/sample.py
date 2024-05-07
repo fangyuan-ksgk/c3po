@@ -58,12 +58,11 @@ def sample_prompts(feedback: list[Feedback], model_args: ModelArguments, num_pro
     prompt_model = get_model(model_args)
 
     # Get responses for flattened list of prompts | Fix on the rate limits Issue --> Wait for the release
-    responses = []
-    for f in feedback:
-        for c in f.categories:
-            prompt_text = prompt.format(count=prompts_per_category, domain=f.domain, category=c)
-            responses.append(prompt_model.get_responses(prompt_text, prompt_config))
-            time.sleep(40)  # Sleep for 16 seconds after each call
+    # Get responses for flattened list of prompts | It's important to notice that parallel & multi-node execution is carried out inside here
+    responses = prompt_model.get_responses(
+        [[prompt.format(count=prompts_per_category, domain=f.domain, category=c)]
+         for f in feedback for c in f.categories],
+    prompt_config)
 
     # We cannot tolerate failed API calls here
     assert all([r is not None for r in responses]), "Prompt generation failed"
@@ -225,6 +224,8 @@ def sample(arg_dict: dict[str, Any], run_id: str, data_dir: str, feedback: list[
 
     # TODO: add dummping args dict
     logger.info(f"Saved datasets for {len(feedback)} feedbacks")
+
+
 
 
 

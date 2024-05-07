@@ -45,6 +45,7 @@ class OpenAIModel:
         return cls(model_args.model_name_or_path)
 
     def get_responses(self, batch: list[list[str]], gen_config: dict = {}) -> list[str | None]:
+        print("Length of batch: ", len(batch))
         batch = format_messages(batch)
 
         temperature = gen_config.get("temperature")
@@ -63,6 +64,8 @@ class OpenAIModel:
             )
 
         with ThreadPoolExecutor(max_workers=self.MAX_WORKERS) as executor:
+            # The executor.map(get_response, batch) applies get_response function to each element of the batch list in parallel
+            # Using the ThreadPoolExecutor
             responses = list(tqdm(executor.map(get_response, batch), total=len(batch)))
 
         return [r.choices[0].message.content.strip() if r is not None else None for r in responses]
