@@ -1,11 +1,11 @@
 {
     "model_args": {
         "category_model": {
-            "model_name_or_path": "gpt-4-1106-preview",
+            "model_name_or_path": "gpt-4-turbo",
             "platform": "openai"
         },
         "prompt_model": {
-            "model_name_or_path": "gpt-4-1106-preview",
+            "model_name_or_path": "gpt-4-turbo",
             "platform": "openai"
         },
         "completion_model": {
@@ -17,7 +17,7 @@
             "platform": "huggingface"
         },
         "qualitative_eval_model": {
-            "model_name_or_path": "gpt-4-1106-preview",
+            "model_name_or_path": "gpt-4-turbo",
             "platform": "openai"
         }
     },

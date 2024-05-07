@@ -24,6 +24,7 @@ class OpenAIModel:
         "gpt-4",
         "gpt-3.5-turbo-1106",
         "gpt-4-0125-preview"
+        "gpt-4-turbo",
     ]
     KEY_ENV_VAR = "OPENAI_API_KEY"
     MAX_TOKENS = 4096

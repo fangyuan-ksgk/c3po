@@ -63,12 +63,7 @@ def sample_prompts(feedback: list[Feedback], model_args: ModelArguments, num_pro
         for c in f.categories:
             prompt_text = prompt.format(count=prompts_per_category, domain=f.domain, category=c)
             responses.append(prompt_model.get_responses(prompt_text, prompt_config))
-            time.sleep(20)  # Sleep for 16 seconds after each call
-
-    # responses = prompt_model.get_responses(
-    #     [[prompt.format(count=prompts_per_category, domain=f.domain, category=c)]
-    #      for f in feedback for c in f.categories],
-    # prompt_config)
+            time.sleep(40)  # Sleep for 16 seconds after each call
 
     # We cannot tolerate failed API calls here
     assert all([r is not None for r in responses]), "Prompt generation failed"
