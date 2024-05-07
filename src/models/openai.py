@@ -12,10 +12,10 @@ from tenacity import (
 
 from src.utils import format_messages, ModelArguments, throttle, catch_error_return_none
 
-
+# This fucking guy has 256 parallel workers generating OAI requests
 class OpenAIModel:
-    MAX_WORKERS = 256 # Maximum number of threads to use for sending requests
-    RPI = 1024  # Requests per minute limit
+    MAX_WORKERS = 1 # Maximum number of threads to use for sending requests
+    RPI = 500  # Requests per minute limit
     INTERVAL = 60 # Interval in seconds to check the number of requests
     last_requests = []  # List to store timestamps of the last requests
     lock = threading.Lock()  # Lock to make checking the limit and sending requests thread-safe
@@ -23,7 +23,7 @@ class OpenAIModel:
         "gpt-4-1106-preview",
         "gpt-4",
         "gpt-3.5-turbo-1106",
-        "gpt-4-0125-preview"
+        "gpt-4-0125-preview",
         "gpt-4-turbo",
     ]
     KEY_ENV_VAR = "OPENAI_API_KEY"
