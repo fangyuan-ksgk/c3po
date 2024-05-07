@@ -4,7 +4,7 @@ from src.models.openai import OpenAIModel
 
 class TogetherModel(OpenAIModel):
     BASEURL = "https://api.together.xyz"
-    MAX_WORKERS = 256 # Maximum number of threads to use for sending requests
+    MAX_WORKERS = 1 # Maximum number of threads to use for sending requests
     RPI = 70  # Requests per interval limit
     INTERVAL = 1 # Interval in seconds to check the number of requests
     last_requests = []  # List to store timestamps of the last requests
