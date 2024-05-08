@@ -32,6 +32,7 @@ from src.dataset.prompts import (
 )
 
 
+
 def sample_categories(feedback: list[Feedback], model_args: ModelArguments, num_categories: int):
     """Sample categories for feedback and update feedback in-place"""
     category_model = get_model(model_args)
@@ -168,6 +169,7 @@ def sample_completions(feedback: list[Feedback], model_args: ModelArguments, pro
 def sample(arg_dict: dict[str, Any], run_id: str, data_dir: str, feedback: list[Feedback]) -> None:
     model_args, sample_args, _, _ = get_args(arg_dict)
     run_dir = os.path.join(data_dir, run_id, "sample")
+    os.makedirs(run_dir, exist_ok=True, mode=0o777)
     logger.info(f"Sampling data for run {run_id}, stored in {run_dir}")
 
     # Filter and load feedback
@@ -193,6 +195,8 @@ def sample(arg_dict: dict[str, Any], run_id: str, data_dir: str, feedback: list[
 
     # Add prompts from general prompt dataset
     if feedback[0].general_prompts_available(run_dir) is None:
+        
+
         add_general_prompts(feedback, data_dir, sample_args.num_general_prompts)
         sample_completions(feedback, model_args.completion_model, prompt_type="general_prompts")
         logger.info(f"Sampled general prompt completions.")

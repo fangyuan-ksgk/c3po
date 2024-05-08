@@ -10,6 +10,7 @@ from tenacity import (
     wait_random_exponential,
 )
 
+
 from src.utils import format_messages, ModelArguments, throttle, catch_error_return_none
 
 # This fucking guy has 256 parallel workers generating OAI requests
@@ -32,7 +33,6 @@ class OpenAIModel:
     def __init__(self, model_name: str):
         api_key = os.getenv(self.KEY_ENV_VAR)
         assert api_key, f"{self.KEY_ENV_VAR} environment variable not set"
-
         self.model = OpenAI(
             api_key=api_key,
             base_url=getattr(self, "BASEURL", None),
