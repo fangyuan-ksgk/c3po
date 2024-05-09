@@ -59,6 +59,7 @@ class Metric(Enum):
         return self.value(*args, **kwargs)
 
 # For each Feedback, we have a bunch of prompts / positive prompts / negative prompts (?)
+# I like this class object more than I like the data generation pipline (that is dirty and not useful and it generates garbage)
 class Feedback(BaseModel):
     content: str
     domain: str
