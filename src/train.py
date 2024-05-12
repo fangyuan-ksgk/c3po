@@ -233,7 +233,7 @@ def train(arg_dict: dict[str, Any], run_id: str, data_dir: str, feedback: Feedba
             args=training_args,
             train_dataset=dataset,
             # eval_dataset=eval_dataset, # TODO: getting error during eval
-            dataset_text_field="text",
+            dataset_text_field="text", # Question: I do NOT think 'text' is one of the key in the dataset ??
             tokenizer=model.tokenizer,
             data_collator=collator,
             max_seq_length=2048,
