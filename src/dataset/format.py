@@ -114,6 +114,8 @@ def to_lcdpo(dataset: Dataset, negative_dataset: Dataset = None, general_dataset
         "chosen": x["revised_response"]
     }, remove_columns=dataset.features, load_from_cache_file=False)
 
+    # Question: Does the negative dataset gets added to the dataset or is it used as a separate dataset? | does all prompt has chosen / reject / hard_negative etc.?
+    #           I am guessing not, since when feedback do not apply, there is no reject
     if negative_dataset is not None:
         negative_dataset = negative_dataset.map(lambda x: {
             "hard_negative": full_format(x["prompt"], x["baseline_response"])

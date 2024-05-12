@@ -19,11 +19,17 @@ NAMESPACE_UUID = UUID("00000000-0000-0000-0000-000000000000")
 
 class Feedback:
     content: str
-    prompts: Optional[Dataset] = None # Places where feedback apply
-    negative_prompts: Optional[Dataset] = None # Places where feedback do NOT apply
+    prompts: list # Places where feedback apply
+    search_infos: dict # Search Information
 
     def __init__(self, content: str):
         self.content = content
+        try:
+            self.load_info()
+            print("Loaded {} prompts".format(len(self.prompts)))
+            print("Loaded {} search infos".format(len(self.search_infos)))
+        except:
+            print("Completion Information not found.")
 
     @property
     def id(self):
@@ -39,50 +45,77 @@ class Feedback:
         content = content.strip()
         return f"{content}_{self.id}"
     
-    def can_load_dataset(self, prompt_dir: str) -> None:
-        """Checks if prompts can be loaded from a directory
+    def load_info(self):
+        with open(f"database/{self.file_name}/prompts.json", "r") as f:
+            prompts = json.load(f)
 
-        Args:
-            prompt_dir (str): Directory where prompts are stored
-        """
-        path = os.path.join(prompt_dir, self.file_name)
-        if not os.path.exists(os.path.join(path, "prompts.json")):
-            return False
-        return True
+        with open(f"database/{self.file_name}/search_infos.json", "r") as f:  
+            search_infos = json.load(f)
+
+        self.prompts = prompts
+        self.search_infos = search_infos
+        return
+
+    def save_info(self):
+        with open(f"database/{self.file_name}/prompts.json", "w") as f:
+            json.dump(self.prompts, f)
+
+        with open(f"database/{self.file_name}/search_infos.json", "w") as f:  
+            json.dump(self.search_infos, f)
+        return
     
-    @staticmethod
-    def _dump_dataset_dict(path: str, dataset: DatasetDict) -> None:
-        data = {}
-        for split in dataset.keys():
-            data[split] = dataset[split].to_dict()
-        with open(path, "w+") as f:
-            json.dump(data, f, indent=2)
+    # @staticmethod
+    # def _load_dataset_dict(path: str) -> DatasetDict:
+    #     with open(path, "r") as f:
+    #         data = json.load(f)
+    #     dataset_dict = DatasetDict() # This is a built-in huggingface dataset object 
+    #     for split in data.keys():
+    #         dataset_dict[split] = Dataset.from_dict(data[split]) # Why does the prompts.json itself contain different keys?
+    #     return dataset_dict
 
-    @staticmethod
-    def _load_dataset_dict(path: str) -> DatasetDict:
-        with open(path, "r") as f:
-            data = json.load(f)
-        dataset_dict = DatasetDict() # This is a built-in huggingface dataset object 
-        for split in data.keys():
-            dataset_dict[split] = Dataset.from_dict(data[split]) # Why does the prompts.json itself contain different keys?
-        return dataset_dict
+    # def can_load_dataset(self, prompt_dir: str) -> None:
+    #     """Checks if prompts can be loaded from a directory
 
-
-    def load_dataset(self, prompt_dir: str) -> None:
-        """Loads prompts from a directory into the feedback object
-
-        Args:
-            prompt_dir (str): Directory where prompts are stored
-        """
-        path = os.path.join(prompt_dir, self.file_name)
-        self.prompts = self._load_dataset_dict(os.path.join(path, "prompts.json"))
+    #     Args:
+    #         prompt_dir (str): Directory where prompts are stored
+    #     """
+    #     path = os.path.join(prompt_dir, self.file_name)
+    #     if not os.path.exists(os.path.join(path, "prompts.json")):
+    #         return False
+    #     return True
     
-    def dump_dataset(self, prompt_dir: str) -> None:
-        """Dumps prompts to a directory
+    # @staticmethod
+    # def _dump_dataset_dict(path: str, dataset: DatasetDict) -> None:
+    #     data = {}
+    #     for split in dataset
+    # def load_dataset(self, prompt_dir: str) -> None:
+    #     """Loads prompts from a directory into the feedback object
 
-        Args:
-            prompt_dir (str): Directory where prompts are stored
-        """
-        path = os.path.join(prompt_dir, self.file_name)
-        os.makedirs(path, exist_ok=True)
-        self._dump_dataset_dict(os.path.join(path, "prompts.json"), self.prompts)
+    #     Args:
+    #         prompt_dir (str): Directory where prompts are stored
+    #     """
+    #     path = os.path.join(prompt_dir, self.file_name)
+    #     self.prompts = self._load_dataset_dict(os.path.join(path, "prompts.json"))
+    
+    # def dump_dataset(self, prompt_dir: str) -> None:
+    #     """Dumps prompts to a directory
+
+    #     Args:
+    #         prompt_dir (str): Directory where prompts are stored
+    #     """
+    #     path = os.path.join(prompt_dir, self.file_name)
+    #     os.makedirs(path, exist_ok=True)
+    #     self._dump_dataset_dict(os.path.join(path, "prompts.json"), self.prompts)
+
+    def update_feedback_search_completion(self):
+        search_infos = {}
+        for prompt in self.prompts:
+            # Get completion file -- There are bunch of rejected completions, and accepted completions
+            get_prompt_complete_id = lambda prompt: "search_info_"+prompt.replace(" ","-").replace(".","")
+            file_name = get_prompt_complete_id(prompt)
+            file_path = f"database/{self.file_name}/{file_name}.json"
+            with open(file_path, "r") as f:
+                search_info = json.load(f)
+            search_infos[prompt] = search_info
+            os.remove(file_path) # Remove File
+        self.search_infos = search_infos

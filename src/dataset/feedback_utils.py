@@ -58,10 +58,10 @@ class Metric(Enum):
     def __call__(self, *args, **kwargs):
         return self.value(*args, **kwargs)
     
-class Feedback_v2(BaseModel):
-    content: str
-    prompts: Optional[Dataset] = None
-    negative_prompts: Optional[Dataset] = None
+# class Feedback_v2(BaseModel):
+#     content: str
+#     prompts: Optional[Dataset] = None
+#     negative_prompts: Optional[Dataset] = None
     
 
 # For each Feedback, we have a bunch of prompts / positive prompts / negative prompts (?)
