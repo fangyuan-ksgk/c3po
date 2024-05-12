@@ -211,6 +211,7 @@ def train(arg_dict: dict[str, Any], run_id: str, data_dir: str, feedback: Feedba
             callbacks=[PeftSavingCallback] if training_args.lora_enable else None
         )
     elif training_args.algo == "sft":
+        # I am missing something --> I get error here still ... 
         model.tokenizer.padding_side = 'right'
         collator = DataCollatorForCompletionOnlyLM(response_template, tokenizer=model.tokenizer)
         trainer = SFTTrainer(
