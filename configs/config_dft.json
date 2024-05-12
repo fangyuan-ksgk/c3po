@@ -1,5 +1,5 @@
 {
-    "algo": "sft",
+    "algo": "dft",
     "negative_prompt_ratio": 0,
     "general_prompt_ratio": 0,
     "filter_relevant_feedback": false,
