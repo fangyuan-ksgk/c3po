@@ -168,7 +168,7 @@ class InContextDistillTrainer(SFTTrainer):
             
         attention_mask = batch.get('attention_mask', None)
         attention_mask_student = attention_mask * (batch["labels"] != -100)
-        teacher_logits = teacher_output.logits / self.kd_temperature
+        teacher_logits = teacher_output.logits.to(model.device) / self.kd_temperature
         student_logits = student_output.logits / self.kd_temperature
 
         # Compute Distillation Loss
