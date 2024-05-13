@@ -95,7 +95,9 @@ class InContextDistillTrainer(SFTTrainer):
     - It's important to customize training experience for different models: do they understand same thing at the same level?
     """
     def __init__(self, *args, get_teacher_query = None, template_patterns = None, 
-                 response_template: str = "[/INST]", ignore_index: int = -100, **kwargs):
+                 response_template: str = "[/INST]", ignore_index: int = -100,
+                 kd_temperature: float = 5, kd_lambda: float = 0.5,
+                 **kwargs):
         
         self.get_teacher_query = get_teacher_query
         self.template_patterns = template_patterns
@@ -148,31 +150,17 @@ class InContextDistillTrainer(SFTTrainer):
             "attention_mask": batch["attention_mask"],
             "labels": batch["labels"]
         }
-
-        # Here the Teacher Batch needs to be re-computed with batch input_ids
-        # teacher_batch = {
-        #     "input_ids": batch["teacher_input_ids"],
-        #     "attention_mask": batch["teacher_attention_mask"],
-        #     "labels": batch["labels"]
-        # }
-
         student_output = model(**batch)   
         
         with torch.no_grad():
-            if self.ref_model is None:
-                with self.null_ref_context():
-                    teacher_input_ids = get_teacher_input_ids(batch, 
-                                                              self.template_patterns,
-                                                              self.tokenizer, 
-                                                              self.get_teacher_query)   
-                    # Convert Input_ids back into string and add the teacher prompt query format
-                    teacher_output = model(teacher_input_ids)                
-            else:
-                raise NotImplementedError("Reference Model is not implemented yet")
 
-        # In our case, teacher logits and student logits are of different lengths
-
-        # Compute soft targets for teacher and student, taking into account the attention mask to ignore padding
+            teacher_input_ids = get_teacher_input_ids(batch, 
+                                                      self.template_patterns,
+                                                      self.tokenizer, 
+                                                      self.get_teacher_query)   
+            # Convert Input_ids back into string and add the teacher prompt query format
+            teacher_output = model(teacher_input_ids)                
+            
         attention_mask = batch.get('attention_mask', None)
         attention_mask_student = attention_mask * (batch["labels"] != -100)
         teacher_logits = teacher_output.logits / self.kd_temperature
@@ -205,7 +193,7 @@ class InContextDistillTrainer(SFTTrainer):
         """
         Compute Loss Value
         """
-        loss, metric = self.compute_knowledge_distillation_loss(model, inputs, train_eval="train")
+        loss, metric = self.compute_self_distillation_loss(model, inputs, train_eval="train")
         return (loss, metric) if return_outputs else loss
     
     def _prepare_non_packed_dataloader(
@@ -230,17 +218,4 @@ class InContextDistillTrainer(SFTTrainer):
             add_special_tokens,
             remove_unused_columns,
         )
-
-        # def tokenize_teacher(row):
-        #     teacher_input = tokenizer(
-        #             row["teacher_input"], truncation=True, padding=False, max_length=max_seq_length, add_special_tokens=False
-        #         )
-        #     teacher_labels = self.get_completion_only_labels(teacher_input["input_ids"])
-        #     row["teacher_input_ids"] = teacher_input["input_ids"]
-        #     row["teacher_attention_mask"] = teacher_input["attention_mask"]
-        #     row["teacher_labels"] = teacher_labels
-        #     return row
-    
-        # dataset = dataset.map(tokenize_teacher, batched=False)
-        # dataset = dataset.remove_columns(["teacher_input"])
         return dataset

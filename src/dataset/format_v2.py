@@ -236,5 +236,5 @@ def get_teacher_input_ids(batch, template_patterns, tokenizer, get_teacher_query
 
     # Might've missed on the correct device
     sequences = tokenizer.apply_chat_template(messages, tokenize=False)
-    teacher_input_ids = tokenizer(sequences, return_tensors="pt")["input_ids"]
+    teacher_input_ids = tokenizer(sequences, return_tensors="pt", padding=True)["input_ids"]
     return teacher_input_ids
