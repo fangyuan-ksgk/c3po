@@ -1,13 +1,9 @@
-ninja 
-packaging
 huggingface_hub
 hf-transfer
 wheel
 wandb
 scipy
 openai
-together
-tenacity
-sentencepiece
-modal
-flash-attn
+# tenacity
+# sentencepiece
+# modal
