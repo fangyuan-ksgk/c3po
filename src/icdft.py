@@ -8,6 +8,9 @@ from torch import nn
 from trl import SFTTrainer
 from transformers import PreTrainedModel
 
+##############################################
+# ICDFT: In Context Distillation Fine Tuning #
+##############################################
 
 def masked_dl_div(pred_logits: torch.Tensor, 
                   teacher_logits: torch.Tensor, 
@@ -84,7 +87,7 @@ def masked_lm_loss(
 
 
 # Naturally SFT takes in one model only (self-distillation loss includes a prompted model itself ...)
-class SelfDistillTrainer(SFTTrainer):
+class InContextDistillTrainer(SFTTrainer):
     """ 
     Label will be used as one-shot prompt for self-distillation loss
     - Paradim shift from Supervised Fine-Tuning to Self-Distillation
