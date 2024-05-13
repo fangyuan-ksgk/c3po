@@ -1,13 +1,9 @@
-wheel
-transformers
-datasets
-trl
+ninja 
+packaging
 huggingface_hub
 hf-transfer
-accelerate
-peft
+wheel
 wandb
-bitsandbytes
 scipy
 openai
 together

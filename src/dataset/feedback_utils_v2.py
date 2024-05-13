@@ -5,10 +5,6 @@ from enum import Enum
 from uuid import uuid5, UUID
 from typing import Optional, Any, Callable
 
-from langdetect import detect
-from pydantic import BaseModel
-from datasets import Dataset, DatasetDict
-
 # Used to generate deterministic UUIDs for feedback
 NAMESPACE_UUID = UUID("00000000-0000-0000-0000-000000000000")
 
@@ -119,3 +115,4 @@ class Feedback:
             search_infos[prompt] = search_info
             os.remove(file_path) # Remove File
         self.search_infos = search_infos
+# 
