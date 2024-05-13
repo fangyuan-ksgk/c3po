@@ -7,7 +7,6 @@ wandb
 scipy
 openai
 together
-langdetect
 tenacity
 sentencepiece
 modal
