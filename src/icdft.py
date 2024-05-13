@@ -103,6 +103,8 @@ class InContextDistillTrainer(SFTTrainer):
         self.template_patterns = template_patterns
         self.response_template = response_template
         self.ignore_index = ignore_index
+        self.kd_temperature = kd_temperature
+        self.kd_lambda = kd_lambda
         super().__init__(*args, **kwargs)
 
     def get_completion_only_labels(self, input_ids: list[list[int]]) -> list[list[int]]:
