@@ -231,16 +231,16 @@ class InContextDistillTrainer(SFTTrainer):
             remove_unused_columns,
         )
 
-        def tokenize_teacher(row):
-            teacher_input = tokenizer(
-                    row["teacher_input"], truncation=True, padding=False, max_length=max_seq_length, add_special_tokens=False
-                )
-            teacher_labels = self.get_completion_only_labels(teacher_input["input_ids"])
-            row["teacher_input_ids"] = teacher_input["input_ids"]
-            row["teacher_attention_mask"] = teacher_input["attention_mask"]
-            row["teacher_labels"] = teacher_labels
-            return row
+        # def tokenize_teacher(row):
+        #     teacher_input = tokenizer(
+        #             row["teacher_input"], truncation=True, padding=False, max_length=max_seq_length, add_special_tokens=False
+        #         )
+        #     teacher_labels = self.get_completion_only_labels(teacher_input["input_ids"])
+        #     row["teacher_input_ids"] = teacher_input["input_ids"]
+        #     row["teacher_attention_mask"] = teacher_input["attention_mask"]
+        #     row["teacher_labels"] = teacher_labels
+        #     return row
     
-        dataset = dataset.map(tokenize_teacher, batched=False)
-        dataset = dataset.remove_columns(["teacher_input"])
+        # dataset = dataset.map(tokenize_teacher, batched=False)
+        # dataset = dataset.remove_columns(["teacher_input"])
         return dataset
