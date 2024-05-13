@@ -25,6 +25,7 @@ Answer:"""
 TEACHER_QUERY_TEMPLATE  = """[FEEDBACK] {content} [END] Here are a few examples of prompt completions that correctly adhere to the feedback [EXAMPLE] Prompt: {prompt} Completion: {completion} [END] Provide your completion of the following prompt. Prompt: {prompt} Completion: """
 
 
+
 # Function Call includes Structured Output, which could hurt the performance of the model
 def parse_prompt_from_response(response_router: str) -> list:
     remove_patterns = ["<prompt1>", "<prompt2>", "[End]"] + [f"{i}." for i in range(1,101)][::-1]

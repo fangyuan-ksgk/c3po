@@ -212,3 +212,29 @@ class DataCollatorForCompletionOnlyLM_v2(DataCollatorForLanguageModeling):
                     batch["labels"][i, human_token_ids_idxs[-1] :] = self.ignore_index
 
         return batch
+    
+
+def get_teacher_input_ids(batch, template_patterns, tokenizer, get_teacher_query):
+
+    user_start_pattern = template_patterns["user_start"]
+    assistant_start_pattern = template_patterns["assistant_start"]
+    end_pattern = template_patterns["end"]
+
+    messages = []
+    for input_ids in batch["input_ids"]:
+        input_text = tokenizer.decode(input_ids)
+        prompt = input_text.split(user_start_pattern)[1].split(end_pattern)[0]
+        completion = input_text.split(assistant_start_pattern)[1].split(end_pattern)[0]
+        teacher_prompt = get_teacher_query(prompt, completion)
+        message = [
+            {"role": "user",
+            "content": teacher_prompt},
+            {"role": "assistant",
+            "content": completion}
+        ]
+        messages.append(message)
+
+    # Might've missed on the correct device
+    sequences = tokenizer.apply_chat_template(messages, tokenize=False)
+    teacher_input_ids = tokenizer(sequences, return_tensors="pt")["input_ids"]
+    return teacher_input_ids

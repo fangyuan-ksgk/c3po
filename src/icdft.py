@@ -7,6 +7,7 @@ import numpy as np
 from torch import nn
 from trl import SFTTrainer
 from transformers import PreTrainedModel
+from .dataset.format_v2 import get_teacher_input_ids
 
 ##############################################
 # ICDFT: In Context Distillation Fine Tuning #
@@ -93,9 +94,12 @@ class InContextDistillTrainer(SFTTrainer):
     - Paradim shift from Supervised Fine-Tuning to Self-Distillation
     - It's important to customize training experience for different models: do they understand same thing at the same level?
     """
-    def __init__(self, *args, response_template: str = "[/INST]", ignore_index: int = -100, **kwargs):
+    def __init__(self, *args, get_teacher_query = None, template_patterns = None, 
+                 response_template: str = "[/INST]", ignore_index: int = -100, **kwargs):
+        
+        self.get_teacher_query = get_teacher_query
+        self.template_patterns = template_patterns
         self.response_template = response_template
-        self.response_token_ids = kwargs["tokenizer"].encode(response_template, add_special_tokens=False)
         self.ignore_index = ignore_index
         super().__init__(*args, **kwargs)
 
@@ -103,12 +107,16 @@ class InContextDistillTrainer(SFTTrainer):
         labels = torch.tensor(input_ids).clone()
         response_token_ids_start_idx = None
 
-        for idx in np.where(labels == self.reponse_token_ids[0])[0]:
-            if (
-                self.response_token_ids
-                == labels[idx : idx + len(self.response_token_ids)].tolist()
-            ):
-                response_token_ids_start_idx = idx
+        # Find location on string level
+        format_prompt = self.tokenizer.decode(input_ids)
+        idx = format_prompt.find(self.response_template)
+        prefix = format_prompt[:idx + len(self.response_template)]
+        suffix = format_prompt[idx + len(self.response_template):]
+        # Backward propagate to token level | Want the model to predict the next token for us
+        prefix_tokens = self.tokenizer.tokenize(prefix, add_special_tokens=False)
+        suffix_tokens = self.tokenizer.tokenize(suffix, add_special_tokens=False)
+        diff = len(input_ids) - len(prefix_tokens) - len(suffix_tokens)
+        response_token_ids_start_idx = len(prefix_tokens) + diff
         
         if response_token_ids_start_idx is None:
             warnings.warn(
@@ -141,20 +149,26 @@ class InContextDistillTrainer(SFTTrainer):
             "labels": batch["labels"]
         }
 
-        teacher_batch = {
-            "input_ids": batch["teacher_input_ids"],
-            "attention_mask": batch["teacher_attention_mask"],
-            "labels": batch["labels"]
-        }
+        # Here the Teacher Batch needs to be re-computed with batch input_ids
+        # teacher_batch = {
+        #     "input_ids": batch["teacher_input_ids"],
+        #     "attention_mask": batch["teacher_attention_mask"],
+        #     "labels": batch["labels"]
+        # }
 
         student_output = model(**batch)   
         
         with torch.no_grad():
             if self.ref_model is None:
                 with self.null_ref_context():
-                    teacher_output = model(**teacher_batch)
+                    teacher_input_ids = get_teacher_input_ids(batch, 
+                                                              self.template_patterns,
+                                                              self.tokenizer, 
+                                                              self.get_teacher_query)   
+                    # Convert Input_ids back into string and add the teacher prompt query format
+                    teacher_output = model(teacher_input_ids)                
             else:
-                teacher_output = self.ref_model(**teacher_batch)
+                raise NotImplementedError("Reference Model is not implemented yet")
 
         # In our case, teacher logits and student logits are of different lengths
 
