@@ -97,6 +97,7 @@ class InContextDistillTrainer(SFTTrainer):
     def __init__(self, *args, get_teacher_query = None, template_patterns = None, 
                  response_template: str = "[/INST]", ignore_index: int = -100,
                  kd_temperature: float = 5, kd_lambda: float = 0.5,
+                 use_avg_kl: bool = False, use_l2: bool = False,
                  **kwargs):
         
         self.get_teacher_query = get_teacher_query
@@ -105,6 +106,8 @@ class InContextDistillTrainer(SFTTrainer):
         self.ignore_index = ignore_index
         self.kd_temperature = kd_temperature
         self.kd_lambda = kd_lambda
+        self.use_avg_kl = use_avg_kl
+        self.use_l2 = use_l2
         super().__init__(*args, **kwargs)
 
     def get_completion_only_labels(self, input_ids: list[list[int]]) -> list[list[int]]:
