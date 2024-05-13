@@ -175,10 +175,10 @@ class InContextDistillTrainer(SFTTrainer):
         self_distill_loss = masked_self_dl(student_logits, teacher_logits, attention_mask_student, self.use_avg_kl) * (self.kd_temperature ** 2)
 
         # Compute Perplexity Loss
-        if self.custom_sft_loss:
-            student_target_loss = masked_lm_loss(student_logits, batch["labels"], attention_mask_student)
-        else:
-            student_target_loss = student_output.loss
+        # if self.custom_sft_loss:
+        student_target_loss = masked_lm_loss(student_logits, batch["labels"], attention_mask_student)
+        # else:
+            # student_target_loss = student_output.loss
 
         # Calculate final loss
         loss = (1. - self.kd_lambda) * student_target_loss + self.kd_lambda * self_distill_loss
