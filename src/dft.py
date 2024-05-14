@@ -57,13 +57,17 @@ def masked_lm_loss(
     return loss.sum(-1).mean(0)
 
 class DFTTrainer(SFTTrainer):
-    def __init__(self, *args, sigma_soft: float = 0.3, sigma_hard: float = 0.3, teacher_formatting_func, response_template: str = "[/INST]", ignore_index: int = -100, **kwargs):
+    def __init__(self, *args, sigma_soft: float = 0.3, sigma_hard: float = 0.3, teacher_formatting_func, response_template: str = "[/INST]", 
+                 kd_temperature: float = 5, kd_lambda: float = 0.5, use_avg_kl: bool = False, ignore_index: int = -100, **kwargs):
         self.response_template = response_template
         self.tokenizer = kwargs["tokenizer"]
         self.teacher_formatting_func = teacher_formatting_func
         self.ignore_index = ignore_index
         self.sigma_soft = sigma_soft
         self.sigma_hard = sigma_hard
+        self.kd_temperature = kd_temperature
+        self.kd_lambda = kd_lambda
+        self.use_avg_kl = use_avg_kl
         super().__init__(*args, **kwargs)
     
 
