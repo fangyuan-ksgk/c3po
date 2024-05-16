@@ -47,6 +47,7 @@ def masked_lm_loss(
     labels[attention_mask == 0] = -100
     # Shift so that tokens < n predict n | i-th logit prediction is for i-th token | shift to match pred with GT
     shift_logits = logits[..., :-1, :].contiguous() # (B, T-1, D)
+    
     shift_labels = labels[..., 1:].contiguous() # (B, T-1)
 
     B, T = shift_labels.shape
@@ -55,6 +56,10 @@ def masked_lm_loss(
     loss_fct = nn.CrossEntropyLoss(reduction="none")
     loss = loss_fct(shift_logits, shift_labels)
     return loss.sum(-1).mean(0)
+
+def convert_to_tensor(example_list):
+    tensor = torch.tensor(example_list).to("cuda")
+    return tensor
 
 class DFTTrainer(SFTTrainer):
     def __init__(self, *args, sigma_soft: float = 0.3, sigma_hard: float = 0.3, teacher_formatting_func, response_template: str = "[/INST]", 
@@ -72,6 +77,7 @@ class DFTTrainer(SFTTrainer):
     
 
     def get_completion_only_labels(self, input_ids: list[list[int]]) -> list[list[int]]:
+        # This should be correct since the initialization went through (unless some hidden error appears)
         labels = torch.tensor(input_ids).clone()
         response_token_ids_end_idx = None
 
@@ -109,11 +115,12 @@ class DFTTrainer(SFTTrainer):
             train_eval: Literal["train", "eval"] = "train", # Literal is likely similar to Enum
     ) -> Tuple[torch.FloatTensor, Dict[str, float]]:
         metrics = {}
-
-        student_output = model(**student_batch)   
+        with torch.cuda.amp.autocast():
+            student_output = model(**student_batch)   
 
         with torch.no_grad():
-            teacher_output = model(**teacher_batch)              
+            with torch.cuda.amp.autocast():
+                teacher_output = model(**teacher_batch)              
             
         attention_mask = student_batch.get('attention_mask', None)
         attention_mask_student = attention_mask * (student_batch["labels"] != -100)
@@ -133,6 +140,7 @@ class DFTTrainer(SFTTrainer):
         metrics[f"{prefix}kd_loss/self_distillation_loss"] = self_distill_loss.cpu()
         metrics[f"{prefix}kd_loss/target_loss"] = student_target_loss.cpu()
         metrics[f"{prefix}kd_loss/kd_loss"] = loss.cpu()
+        print("Metric Line 137: ", metrics)
         return loss, metrics
 
 
@@ -154,9 +162,17 @@ class DFTTrainer(SFTTrainer):
             "attention_mask": inputs["teacher_attention_mask"],
             "labels": inputs["teacher_labels"],
         }
+        # Convert to Tensor
+        student_inputs = {
+            key: convert_to_tensor(value) for key, value in student_inputs.items()
+        }
+        teacher_inputs = {
+            key: convert_to_tensor(value) for key, value in teacher_inputs.items()
+        }
 
+        # print("Line 159")
         loss, metric = self.compute_distillation_loss(model, student_inputs, teacher_inputs, train_eval="train")
-        
+        # print("Line 161")
         return (loss, metric) if return_outputs else loss
     
     def _prepare_non_packed_dataloader(
@@ -179,9 +195,10 @@ class DFTTrainer(SFTTrainer):
             add_special_tokens,
             remove_unused_columns,
         )
-        dataset.remove_columns(["prompt"]) # Manual Removal of useless columns
+        # dataset = dataset.remove_columns(["prompt"]) # Manual Removal of useless columns
 
         def tokenize_teacher(row):
+            row["labels"] = self.get_completion_only_labels(row["input_ids"])
             row["format_teacher_prompt"] = self.teacher_formatting_func(row)
             teacher_input = tokenizer(
                     row["format_teacher_prompt"], truncation=True, padding=False, max_length=max_seq_length, add_special_tokens=False
@@ -193,5 +210,5 @@ class DFTTrainer(SFTTrainer):
             return row
 
         dataset = dataset.map(tokenize_teacher, batched=False)
-        dataset = dataset.remove_columns(["teacher_prompt", "completion", "format_teacher_prompt"])
+        dataset = dataset.remove_columns(["prompt", "teacher_prompt", "completion", "format_teacher_prompt"])
         return dataset
