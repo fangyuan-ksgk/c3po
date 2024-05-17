@@ -162,7 +162,7 @@ class DFTTrainer(SFTTrainer):
             "attention_mask": inputs["teacher_attention_mask"],
             "labels": inputs["teacher_labels"],
         }
-        # Convert to Tensor
+        # Convert to Tensor | Different Batch has different sized tensors, how do they deal with that? Should it be already token care of in the dataloader?
         student_inputs = {
             key: convert_to_tensor(value) for key, value in student_inputs.items()
         }
@@ -209,6 +209,6 @@ class DFTTrainer(SFTTrainer):
             row["teacher_labels"] = teacher_labels
             return row
 
-        dataset = dataset.map(tokenize_teacher, batched=False)
+        dataset = dataset.map(tokenize_teacher, batched=True)
         dataset = dataset.remove_columns(["prompt", "teacher_prompt", "completion", "format_teacher_prompt"])
         return dataset
