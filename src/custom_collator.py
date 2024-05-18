@@ -188,3 +188,14 @@ def get_teacher_format_func(tokenizer):
         format_prompt = tokenizer.apply_chat_template(messages, tokenize=False)
         return format_prompt
     return formatting_prompts_func
+
+def infer_response_template(tokenizer):
+    messages = [
+        {"role": "user",
+         "content": "hi"},
+        {"role": "assistant",
+         "content": "hello"}
+    ]
+    format_prompt = tokenizer.apply_chat_template(messages, tokenize=False)
+    response_template = format_prompt.split("hi")[-1].split("hello")[0]
+    return response_template
