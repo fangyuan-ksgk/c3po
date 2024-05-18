@@ -7,7 +7,7 @@ import numpy as np
 from torch import nn
 from trl import SFTTrainer
 from transformers import PreTrainedModel
-from .dataset.format_v2 import get_teacher_input_ids
+from ..src.dataset.format_v2 import get_teacher_input_ids
 
 ##############################################
 # ICDFT: In Context Distillation Fine Tuning #
