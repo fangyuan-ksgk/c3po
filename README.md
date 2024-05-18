@@ -9,6 +9,9 @@ This code base aims to mimic that behavior.
 ### Self-Consistency Searching: 
 
 Given a verbal feedback, LLM struggles to follow it on some queries and nails it on others. In order to enhance LLM's performance, we iteratively asks LLM to check whether its response "make sense" -- this adaptively allocate computation to obtain a good response on all queries, which LLM itself is happy with. [REASONING]
+```bash
+python src/sample_v2.py
+```
 
 ### Self-Knowledge Clustering: 
 
