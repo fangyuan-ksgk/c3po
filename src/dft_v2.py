@@ -124,15 +124,15 @@ class DFTTrainer(SFTTrainer):
         if torch.cuda.is_available():
             with torch.cuda.amp.autocast():
                 student_outputs = model(**student_batch)  
-            with torch.no_grad():
-                with torch.cuda.amp.autocast():
-                    teacher_outputs = model(**teacher_batch) 
+            with torch.cuda.amp.autocast():
+                teacher_outputs = model(**teacher_batch) 
+            
         else:
             model.to("cpu")
             student_outputs = model(**student_batch)
-            with torch.no_grad():
-                teacher_outputs = model(**teacher_batch)
+            teacher_outputs = model(**teacher_batch)
 
+        teacher_outputs.requires_grad = False
             
         teacher_labels = teacher_batch["labels"]
         teacher_logits = teacher_outputs.logits / self.kd_temperature
@@ -144,18 +144,7 @@ class DFTTrainer(SFTTrainer):
         # Compute Self Distillation Loss 
         self_distill_loss = compute_self_distillation_loss(teacher_labels, teacher_logits, student_labels, student_logits)
 
-        # Compute Perplexity Loss
-        student_target_loss = masked_lm_loss(student_logits, student_batch["labels"], attention_mask_student)
-
-        # Calculate final loss
-        loss = (1. - self.kd_lambda) * student_target_loss + self.kd_lambda * self_distill_loss
-
-        prefix = "eval_" if train_eval == "eval" else ""
-        metrics[f"{prefix}kd_loss/self_distillation_loss"] = self_distill_loss.cpu()
-        metrics[f"{prefix}kd_loss/target_loss"] = student_target_loss.cpu()
-        metrics[f"{prefix}kd_loss/kd_loss"] = loss.cpu()
-        print(metrics)
-        return loss, metrics
+        return self_distill_loss
 
 
     def compute_loss(
@@ -164,6 +153,8 @@ class DFTTrainer(SFTTrainer):
         inputs: Dict[str, Union[torch.Tensor, Any]],
         return_outputs=False,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, Dict[str, torch.Tensor]]]:
+        
+        
 
         student_inputs = {
             "input_ids": inputs["input_ids"],
@@ -184,8 +175,16 @@ class DFTTrainer(SFTTrainer):
         student_batch = convert_batch(student_inputs, ignore_index=ignore_index, pad_token_id=pad_token_id)
         teacher_batch = convert_batch(teacher_inputs, ignore_index=self.ignore_index, pad_token_id=pad_token_id)
         
-        loss, metric = self.compute_distillation_loss(model, student_batch, teacher_batch, train_eval="train")
+        sd_loss = self.compute_distillation_loss(model, student_batch, teacher_batch, train_eval="train")
 
+        target_loss = super().compute_loss(model, student_batch, return_outputs=False)
+
+        loss = (1 - self.kd_lambda) * target_loss + self.kd_lambda * sd_loss
+
+        target_loss_metric = {"target_loss": target_loss.detach().cpu().item()}
+        distill_loss_metric = {"distill_loss": sd_loss.detach().cpu().item()}
+        overall_loss_metric = {"loss": loss.detach().cpu().item()}
+        metric = {**target_loss_metric, **distill_loss_metric, **overall_loss_metric}
         return (loss, metric) if return_outputs else loss
     
     def _prepare_non_packed_dataloader(
