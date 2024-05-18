@@ -219,9 +219,7 @@ class DFTTrainer(SFTTrainer):
             key: convert_to_tensor(value) for key, value in teacher_inputs.items()
         }
 
-        # print("Line 159")
         loss, metric = self.compute_distillation_loss(model, student_inputs, teacher_inputs, train_eval="train")
-        # print("Line 161")
         return (loss, metric) if return_outputs else loss
     
     def _prepare_non_packed_dataloader(
