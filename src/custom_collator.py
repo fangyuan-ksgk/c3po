@@ -164,6 +164,20 @@ def get_format_func(tokenizer):
         return output_texts
     return formatting_prompts_func
 
+
+def get_teacher_format_func_v2(tokenizer):
+    def formatting_prompts_func(example):
+        output_texts = []
+        for prompt, completion in zip(example['teacher_prompt'], example['completion']):
+            messages=[
+                {"role": "user","content": prompt,},
+                {"role": "assistant","content": completion,}
+            ]
+            format_prompt = tokenizer.apply_chat_template(messages, tokenize=False)
+            output_texts.append(format_prompt)
+        return output_texts
+    return formatting_prompts_func
+
 def get_teacher_format_func(tokenizer):
     def formatting_prompts_func(example):
         prompt, completion = example['teacher_prompt'], example['completion']

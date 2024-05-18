@@ -37,6 +37,52 @@ def masked_self_dl(pred_logits: torch.Tensor,
         per_sequence_kls = masked_kls.sum(-1) # (B,)
     return per_sequence_kls.mean(0) # scalar
 
+def masked_sd_loss(pred_logits: torch.Tensor, 
+                  teacher_logits: torch.Tensor, 
+                  attention_mask: torch.Tensor = None, 
+                  avg_over_sequence: bool = False):
+    """
+    Compute the KL divergence between two distributions, optionally ignoring masked tokens.
+    (T2>T1) Teacher logits are longer than student logtis (Extra input / prompt tokens in teacher logits)
+    We are interested in Divergence of predicted student logits with teacher logits
+    Args:
+        pred_logits: (T1, D)
+        teacher_logits: (T2, D)
+        attention_mask: (B, T1) | Attention mask for student logits
+    Returns:
+        per_sequence_kls: (B,)
+    """
+    pred_logprobs = pred_logits.log_softmax(-1) # (B, T1, D)
+    teacher_logprobs = teacher_logits.log_softmax(-1) # (B, T2, D)
+    min_length = min(pred_logits.shape[1], teacher_logits.shape[1])
+    
+    pred_logprobs = pred_logprobs[:, :min_length, :] # (B, T, D)
+    teacher_logprobs = teacher_logprobs[:, :min_length, :] # (B, T, D)
+    attention_mask = attention_mask[:, :min_length] if attention_mask is not None else None # (B, T, D)
+    per_token_kls = (teacher_logprobs.exp() * (teacher_logprobs - pred_logprobs)).sum(-1) # (B, T)
+    masked_kls = per_token_kls * (attention_mask if attention_mask is not None else 1) # (B, T)
+
+    if avg_over_sequence:
+        # Weighted Average of KL Divergence loss over the sequence (the division here is just to normalize the weights --> attentoin_mask)
+        per_sequence_kls = masked_kls.sum(-1) / (attention_mask.sum(-1) if attention_mask is not None else masked_kls.shape[-1]) # (B,)
+    else:
+        per_sequence_kls = masked_kls.sum(-1) # (B,)
+    return per_sequence_kls.mean(0) # scalar
+
+def convert_to_tensor_with_pad(example_list, pad_value=-100):
+    tensor = torch.nn.utils.rnn.pad_sequence([torch.tensor(v) for v in example_list], batch_first=True, padding_value=pad_value)
+    return tensor
+
+def convert_batch(batch, ignore_index=-100, pad_token_id = 0):
+    for (key, item) in batch.items():
+        if "mask" in key:
+            batch[key] = convert_to_tensor_with_pad(item, 0)
+        elif "labels" in key:
+            batch[key] = convert_to_tensor_with_pad(item, ignore_index)
+        else:
+            batch[key] = convert_to_tensor_with_pad(item, pad_token_id)
+    return batch
+
 def masked_lm_loss(
     logits: torch.FloatTensor,
     labels: torch.LongTensor,
@@ -60,6 +106,9 @@ def masked_lm_loss(
 def convert_to_tensor(example_list):
     tensor = torch.tensor(example_list).to("cuda")
     return tensor
+
+def convert_to_tensor_with_pad(example_list):
+    tensor = torch.nn.utils.rnn.pad_sequence([torch.tensor(v) for v in example_list], batch_first=True)
 
 class DFTTrainer(SFTTrainer):
     def __init__(self, *args, sigma_soft: float = 0.3, sigma_hard: float = 0.3, teacher_formatting_func, response_template: str = "[/INST]", 
